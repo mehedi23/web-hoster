@@ -1,10 +1,16 @@
 from django.urls import path
-from .views.server_site import RegisterView, LoginView, PasswordResetView, SendVerificationEmailView, VerifyEmailView
+from user.api.views.auth import (
+    register,
+    email_verification,
+    login,
+    refresh_access_token,
+)
+
+app_name = 'user_api'
 
 urlpatterns = [
-    path('register/', RegisterView.as_view(), name='user-register'),
-    path('login/', LoginView.as_view(), name='user-login'),
-    path('password-reset/', PasswordResetView.as_view(), name='password-reset'),
-    path('send-verification-email/', SendVerificationEmailView.as_view(), name='send-verification-email'),
-    path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
+    path('auth/register/', register, name='register'),
+    path('auth/verify-email/', email_verification, name='verify_email'),
+    path('auth/login/', login, name='login'),
+    path('auth/refresh/', refresh_access_token, name='refresh_token'),
 ]
