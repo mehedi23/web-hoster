@@ -1,0 +1,47 @@
+services:
+  web:
+    build: .
+    command: bash -c "python manage.py runserver 0.0.0.0:${WEB_PORT}"
+    ports:
+      - "${WEB_PORT}:${WEB_PORT}"
+    volumes:
+      - .:/src
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DJANGO_SETTINGS_MODULE=app.settings
+      - PYTHONUNBUFFERED=1
+
+  redis:
+    image: redis:alpine
+
+  db:
+    image: postgres:17-alpine
+    volumes:
+      - user_model_pg_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB_HOST=${DB_HOST}
+      - POSTGRES_PORT=${DB_PORT}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h ${DB_HOST} -p 5432 -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  worker_default:
+    build:
+      context: .
+    command: celery -A app worker --loglevel=info --queues=default --concurrency=2
+    volumes:
+      - .:/src
+    depends_on:
+      - web
+      - redis
+
+volumes:
+  user_model_pg_data:
+  redis_data:
