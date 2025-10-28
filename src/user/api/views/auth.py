@@ -9,7 +9,7 @@ from user.api.serializers import (
     EmailVerificationSerializer,
     LoginSerializer,
     RefreshAccessTokenSerializer,
-    UserDataSerializer
+    ResetPasswordSerializer
 )
 from user.api.services import AuthService
 
@@ -22,9 +22,6 @@ def register(request):
     """
     Register a new user.
     
-    The user will register using their email, password, and confirm password.
-    After registration, a verification OTP will be sent to the user's email,
-    which will be stored in the OTP model. The OTP will be valid for 10 minutes.
     
     Request body:
     {
@@ -36,12 +33,8 @@ def register(request):
     Response:
     {
         "message": "Registration successful. OTP sent to your email.",
-        "user": {
-            "id": 1,
-            "email": "user@example.com",
-            "is_mail_verified": false,
-            "date_joined": "2025-10-18T12:00:00Z"
-        }
+        "email": "user@example.com",
+        "access_token": "easdfjasldfjalsdjflasjdf..."
     }
     """
     serializer = RegisterSerializer(data=request.data)
@@ -51,11 +44,6 @@ def register(request):
         
         # Create OTP for the user
         otp = AuthService.create_otp_for_user(user)
-        
-        # Print OTP to console for development
-        print(f"\n{'='*50}")
-        print(f"OTP for {user.email}: {otp.code}")
-        print(f"{'='*50}\n")
         
         # Send OTP to user's email using Django mail backend
         from django.core.mail import send_mail
@@ -93,17 +81,6 @@ def register(request):
 def email_verification(request):
     """
     Verify user email using OTP.
-    
-    The user will send a request to this API using a JWT token.
-    Only unverified users can verify their email.
-    The verification link sent to the user's email will contain a token.
-    The user will verify their email using that token.
-    If the token is valid and within the allowed time, the user's email will be verified.
-    If the token is invalid or expired, an error message will be returned.
-    The user cannot attempt another email verification within 10 minutes.
-    After successful verification, the token will be deleted from the OTP model.
-    Once verified, the user will receive both an access token and a refresh token.
-    The access token will be valid for 1 day, and the refresh token will be valid for 7 days.
     
     Request body:
     {
@@ -153,8 +130,7 @@ def email_verification(request):
                 {
                     "message": "Email verified successfully.",
                     "access": tokens['access'],
-                    "refresh": tokens['refresh'],
-                    "user": UserDataSerializer(user).data
+                    "refresh": tokens['refresh']
                 },
                 status=status.HTTP_200_OK
             )
@@ -191,7 +167,6 @@ def login(request):
         "message": "Login successful.",
         "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",
         "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-        "user": {...}
     }
     
     Response (unverified user):
@@ -219,8 +194,7 @@ def login(request):
                     {
                         "message": "Login successful.",
                         "access": tokens['access'],
-                        "refresh": tokens['refresh'],
-                        "user": UserDataSerializer(user).data
+                        "refresh": tokens['refresh']
                     },
                     status=status.HTTP_200_OK
                 )
@@ -231,8 +205,7 @@ def login(request):
                 return Response(
                     {
                         "message": "Login successful. Please verify your email.",
-                        "access": tokens['access'],
-                        "user": UserDataSerializer(user).data
+                        "access": tokens['access']
                     },
                     status=status.HTTP_200_OK
                 )
@@ -253,7 +226,6 @@ def login(request):
 def refresh_access_token(request):
     """
     Refresh the access token using the refresh token.
-    
     The user will refresh the access token using the refresh token.
     
     Request body:
@@ -295,7 +267,54 @@ def refresh_access_token(request):
                 {"message": "Invalid refresh token."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-    
+
+    return Response(
+        serializer.errors,
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reset_password(request):
+    """
+    Reset password for authenticated user.
+
+    Request body:
+    {
+        "old_password": "currentpassword123",
+        "new_password": "newpassword123",
+        "confirm_password": "newpassword123"
+    }
+
+    Response:
+    {
+        "message": "Password reset successfully."
+    }
+    """
+    user = request.user
+    serializer = ResetPasswordSerializer(data=request.data)
+
+    if serializer.is_valid():
+        old_password = serializer.validated_data['old_password']
+        new_password = serializer.validated_data['new_password']
+
+        # Check if old password is correct
+        if not user.check_password(old_password):
+            return Response(
+                {"message": "Old password is incorrect."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Set new password
+        user.set_password(new_password)
+        user.save()
+
+        return Response(
+            {"message": "Password reset successfully."},
+            status=status.HTTP_200_OK
+        )
+
     return Response(
         serializer.errors,
         status=status.HTTP_400_BAD_REQUEST

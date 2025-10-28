@@ -13,6 +13,8 @@ class AuthService:
     """Service class for authentication operations"""
 
     OTP_VALIDITY_MINUTES = 10
+    RESEND_OTP_COOLDOWN_MINUTES = 1
+    FORGOT_PASSWORD_TOKEN_LIFETIME_HOURS = 1
     ACCESS_TOKEN_LIFETIME_HOURS = 24
     REFRESH_TOKEN_LIFETIME_DAYS = 7
 
@@ -104,3 +106,60 @@ class AuthService:
             return None, "Invalid email or password."
         except User.DoesNotExist:
             return None, "Invalid email or password."
+
+    @staticmethod
+    def generate_forgot_password_token(user):
+        """Generate access token for forgot password with 1 hour expiration"""
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        # Set 1 hour expiration for forgot password token
+        access.set_exp(lifetime=timedelta(hours=AuthService.FORGOT_PASSWORD_TOKEN_LIFETIME_HOURS))
+
+        # Add custom claims
+        access['is_mail_verified'] = user.is_mail_verified
+        access['email'] = user.email
+        access['new_password'] = True
+
+        return {'access': str(access)}
+
+    @staticmethod
+    def can_resend_otp(user):
+        """Check if user can resend OTP (1 minute cooldown)"""
+        recent_otp = OTP.objects.filter(user=user).order_by('-created_at').first()
+
+        if not recent_otp:
+            return True, "You can request OTP."
+
+        time_diff = timezone.now() - recent_otp.created_at
+        if time_diff < timedelta(minutes=AuthService.RESEND_OTP_COOLDOWN_MINUTES):
+            remaining_seconds = int((timedelta(minutes=AuthService.RESEND_OTP_COOLDOWN_MINUTES) - time_diff).total_seconds())
+            return False, f"Please wait {remaining_seconds} seconds before requesting a new OTP."
+
+        return True, "You can request OTP."
+
+    @staticmethod
+    def verify_forgot_password_otp(email, otp_code):
+        """Verify OTP for forgot password flow"""
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return None, False, "User not found."
+
+        try:
+            otp = OTP.objects.get(
+                user=user,
+                code=otp_code,
+                is_used=False
+            )
+
+            # Check if OTP is expired
+            if timezone.now() - otp.created_at > timedelta(minutes=AuthService.OTP_VALIDITY_MINUTES):
+                return None, False, "OTP has expired."
+
+            otp.is_used = True
+            otp.save()
+            return user, True, "OTP verified successfully."
+
+        except OTP.DoesNotExist:
+            return None, False, "Invalid OTP code."
