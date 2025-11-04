@@ -82,11 +82,6 @@ class ForgotPasswordOTPVerificationSerializer(serializers.Serializer):
     otp_code = serializers.CharField(max_length=6, min_length=6)
 
 
-class ResendOTPSerializer(serializers.Serializer):
-    """Serializer for resending OTP"""
-    email = serializers.EmailField()
-
-
 class SetNewPasswordSerializer(serializers.Serializer):
     """Serializer for setting new password after forgot password OTP verification"""
     new_password = serializers.CharField(write_only=True, validators=[validate_password])

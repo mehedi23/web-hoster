@@ -6,7 +6,6 @@ from django.contrib.auth import get_user_model
 from user.api.serializers import (
     ForgotPasswordSerializer,
     ForgotPasswordOTPVerificationSerializer,
-    ResendOTPSerializer,
     SetNewPasswordSerializer
 )
 from user.api.services import AuthService
@@ -133,72 +132,6 @@ def verify_forgot_password_otp(request):
         return Response(
             {"message": message},
             status=status.HTTP_400_BAD_REQUEST
-        )
-
-    return Response(
-        serializer.errors,
-        status=status.HTTP_400_BAD_REQUEST
-    )
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def resend_otp(request):
-    """
-    Resend OTP for forgot password.
-
-    Request body:
-    {
-        "email": "user@example.com"
-    }
-
-    Response:
-    {
-        "message": "OTP resent to your email."
-    }
-    """
-    serializer = ResendOTPSerializer(data=request.data)
-
-    if serializer.is_valid():
-        email = serializer.validated_data['email']
-
-        # Check if user exists
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response(
-                {"message": "User with this email does not exist."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        # Check if user can resend OTP (1-minute cooldown)
-        can_resend, message = AuthService.can_resend_otp(user)
-        if not can_resend:
-            return Response(
-                {"message": message},
-                status=status.HTTP_429_TOO_MANY_REQUESTS
-            )
-
-        # Delete old OTPs and create new one
-        OTP.objects.filter(user=user).delete()
-        otp = AuthService.create_otp_for_user(user)
-
-        # Send OTP to user's email
-        from django.core.mail import send_mail
-        try:
-            send_mail(
-                subject='Password Reset OTP',
-                message=f'Your password reset OTP is: {otp.code}\n\nThis OTP will expire in 10 minutes.',
-                from_email='noreply@web-hoster.com',
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            print(f"Error sending email: {str(e)}")
-
-        return Response(
-            {"message": "OTP resent to your email."},
-            status=status.HTTP_200_OK
         )
 
     return Response(
