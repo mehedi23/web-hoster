@@ -49,3 +49,23 @@ class ProductImage(BaseModel):
 
     def __str__(self):
         return f'Image for {self.product.name}'
+
+
+
+class ProductOption(BaseModel):
+    product = models.ForeignKey(Product, related_name='product_options', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    is_muiltiple_choice = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.name} for {self.product.name}'
+    
+    
+
+class ProductOptionValue(BaseModel):
+    product_option = models.ForeignKey(ProductOption, related_name='option_values', on_delete=models.CASCADE)
+    icon = models.ImageField(upload_to='option_icons/', null=True, blank=True)
+    value = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f'{self.value} of {self.product_option.name}'
