@@ -1,0 +1,23 @@
+{% extends "user/base.html" %}
+
+{% block title %}Resend Verification{% endblock %}
+
+{% block content %}
+<h1>Resend Verification Email</h1>
+<p class="subtitle">Enter your email to receive a new verification link</p>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" name="email" id="email" class="form-control" placeholder="Enter your email" required>
+    </div>
+
+    <button type="submit" class="btn">Resend Verification Email</button>
+</form>
+
+<div class="links">
+    <p><a href="{% url 'login' %}">Back to Login</a></p>
+</div>
+{% endblock %}

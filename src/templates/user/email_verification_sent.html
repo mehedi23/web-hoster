@@ -1,0 +1,24 @@
+{% extends "user/base.html" %}
+
+{% block title %}Email Verification Sent{% endblock %}
+
+{% block content %}
+<h1>Check Your Email</h1>
+<p class="subtitle">We've sent you a verification link</p>
+
+<div style="text-align: center; padding: 20px 0;">
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 4H4C2.9 4 2.01 4.9 2.01 6L2 18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 8L12 13L4 8V6L12 11L20 6V8Z" fill="#667eea"/>
+    </svg>
+    <p style="margin-top: 20px; color: #666; line-height: 1.6;">
+        A verification email has been sent to your email address.<br>
+        Please click the link in the email to verify your account.
+    </p>
+</div>
+
+<div class="links">
+    <p>Didn't receive the email? <a href="{% url 'resend_verification' %}">Resend</a></p>
+    <div class="divider">or</div>
+    <p><a href="{% url 'login' %}">Back to Login</a></p>
+</div>
+{% endblock %}

@@ -231,6 +231,34 @@ Django = ">=5.2"
 drf = ["djangorestframework"]
 
 [[package]]
+name = "django-material-admin"
+version = "1.8.6"
+description = "Material Design For Django Administration"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "django-material-admin-1.8.6.tar.gz", hash = "sha256:2de97e804a55d478d1776d2fe011970087c6756b5998e528b673fbb6e1f8e5c4"},
+    {file = "django_material_admin-1.8.6-py3-none-any.whl", hash = "sha256:cbd44161c6e8bed8e4fe80a68f90971d22c8a1bc7e731360bec08e6f950917f9"},
+]
+
+[[package]]
+name = "django-unfold"
+version = "0.71.0"
+description = "Modern Django admin theme for seamless interface development"
+optional = false
+python-versions = "<4.0,>=3.10"
+groups = ["main"]
+markers = "python_version < \"4.0\""
+files = [
+    {file = "django_unfold-0.71.0-py3-none-any.whl", hash = "sha256:76d4019aa9052ebe2e040d868be895d8581018fdf7debca943084aa0e79c2e31"},
+    {file = "django_unfold-0.71.0.tar.gz", hash = "sha256:995a296f1c15f172b0d8458ff12beb420ea7e9a666fa865a60ec03f70aaf4066"},
+]
+
+[package.dependencies]
+django = ">=4.2"
+
+[[package]]
 name = "djangorestframework"
 version = "3.16.1"
 description = "Web APIs for Django, made easy."
@@ -974,4 +1002,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13"
-content-hash = "ccaca1d0e6d20cb780168182c5e9482a5b2ab6b154c5cd02a838f62ee8298259"
+content-hash = "9dc66f8201f6a6a62888cc46650fa7ad8267f310a6052e8cc507f2b836c40d11"

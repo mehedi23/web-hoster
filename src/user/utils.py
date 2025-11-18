@@ -1,23 +1,86 @@
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import send_mail
+from django.conf import settings
 from django.urls import reverse
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from celery import shared_task
+from user.models.tokens import EmailVerificationToken, PasswordResetToken
 
 
-class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
-    def _make_hash_value(self, user, timestamp):
-        return f"{user.pk}{timestamp}{user.is_active}"
+def send_verification_email(user, request):
+    """
+    Create a new email verification token and send verification email to user
+    """
+    # Create new verification token
+    token = EmailVerificationToken.objects.create(user=user)
+
+    # Build verification URL
+    verification_url = request.build_absolute_uri(
+        reverse('email_verify', kwargs={'token': str(token.token)})
+    )
+
+    # Email content
+    subject = 'Verify Your Email Address'
+    message = f"""
+    Hello,
+
+    Thank you for signing up! Please verify your email address by clicking the link below:
+
+    {verification_url}
+
+    This link will remain valid until you use it.
+
+    If you did not create an account, please ignore this email.
+
+    Best regards,
+    The Team
+    """
+
+    # Send email
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@example.com',
+        [user.email],
+        fail_silently=False,
+    )
+
+    return token
 
 
-email_verification_token = EmailVerificationTokenGenerator()
+def send_password_reset_email(user, request):
+    """
+    Create a new password reset token and send reset email to user
+    """
+    # Create new password reset token
+    token = PasswordResetToken.objects.create(user=user)
 
+    # Build reset URL
+    reset_url = request.build_absolute_uri(
+        reverse('password_reset_confirm', kwargs={'token': str(token.token)})
+    )
 
-@shared_task
-def send_verification_email(user_email, verification_link):
-    subject = 'Verify your email'
-    message = f'Click the link to verify your email: {verification_link}'
-    from_email = 'noreply@example.com'
-    recipient_list = [user_email]
-    send_mail(subject, message, from_email, recipient_list)
+    # Email content
+    subject = 'Reset Your Password'
+    message = f"""
+    Hello,
+
+    You requested to reset your password. Please click the link below to set a new password:
+
+    {reset_url}
+
+    This link will expire in 24 hours.
+
+    If you did not request a password reset, please ignore this email.
+
+    Best regards,
+    The Team
+    """
+
+    # Send email
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@example.com',
+        [user.email],
+        fail_silently=False,
+    )
+
+    return token
